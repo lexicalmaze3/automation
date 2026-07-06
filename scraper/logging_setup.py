@@ -53,3 +53,13 @@ def setup_logging(log_file: str = "scraper.log", level: int = logging.INFO) -> l
 def log(logger: logging.Logger, level: int, msg: str, **fields) -> None:
     """Helper: emit a message with structured extra fields."""
     logger.log(level, msg, extra={"extra": fields})
+
+
+def alert(logger: logging.Logger, msg: str, **fields) -> None:
+    """Fire a loud, unmissable alert line.
+
+    Stage 2: this is a CRITICAL log tagged alert=true. Stage 5 hooks a Discord
+    webhook into the same call site so alerts also leave the machine.
+    """
+    fields["alert"] = True
+    logger.log(logging.CRITICAL, msg, extra={"extra": fields})

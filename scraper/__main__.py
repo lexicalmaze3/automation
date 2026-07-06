@@ -11,7 +11,9 @@ import logging
 import sys
 
 from .config import Config, ConfigError, load_config
-from .logging_setup import log, setup_logging
+from .errors import ScraperBlocked, ScraperError
+from .fetch import Fetcher
+from .logging_setup import alert, log, setup_logging
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -27,19 +29,30 @@ def build_arg_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Do everything except write output or deliver alerts.",
     )
+    p.add_argument(
+        "--url",
+        default=None,
+        help="Override target_url for a single fetch (debug/testing the fetch layer).",
+    )
     p.add_argument("-v", "--verbose", action="store_true", help="Debug-level logging")
     return p
 
 
-def run(cfg: Config, logger: logging.Logger, dry_run: bool) -> int:
-    """Orchestrate a scrape run. Stages 2-5 flesh this out."""
+def run(cfg: Config, logger: logging.Logger, dry_run: bool, url_override: str | None = None) -> int:
+    """Orchestrate a scrape run. Stages 3-5 flesh this out.
+
+    Stage 2: perform ONE robots-checked, rate-limited fetch of the target.
+    A block or exhausted-retry failure propagates and exits the process non-zero.
+    """
+    target = url_override or cfg.target_url
     log(
         logger,
         logging.INFO,
         "Loaded config; target resolved",
-        target_url=cfg.target_url,
+        target_url=target,
         max_pages=cfg.max_pages,
         rate_limit_seconds=cfg.rate_limit_seconds,
+        user_agent=cfg.user_agent,
         dedupe_key=cfg.dedupe_key,
         active_fields=sorted(cfg.active_fields.keys()),
         pagination_mode=cfg.pagination.mode,
@@ -48,12 +61,15 @@ def run(cfg: Config, logger: logging.Logger, dry_run: bool) -> int:
         dry_run=dry_run,
     )
 
-    if dry_run:
-        log(logger, logging.INFO, "DRY RUN: would scrape target but will write nothing",
-            target_url=cfg.target_url)
+    # Note: --dry-run still fetches (it only skips writing/delivering output).
+    fetcher = Fetcher(cfg, logger)
+    status, html = fetcher.fetch(target)
+    log(logger, logging.INFO, "Stage 2 fetch complete", url=target, status=status,
+        bytes=len(html))
 
-    # Stage 1 stops here — no fetching, parsing, or writing yet.
-    log(logger, logging.INFO, "Stage 1 skeleton run complete; no output written")
+    # Stage 3 will parse `html` into rows; nothing is written yet.
+    log(logger, logging.INFO, "Stage 2 run complete; no output written",
+        dry_run=dry_run)
     return 0
 
 
@@ -70,7 +86,15 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     try:
-        return run(cfg, logger, dry_run=args.dry_run)
+        return run(cfg, logger, dry_run=args.dry_run, url_override=args.url)
+    except ScraperBlocked as exc:
+        # Blocked means STOP. Never retried, never downgraded. Exit non-zero.
+        alert(logger, "RUN HALTED: blocked", error=str(exc))
+        return 3
+    except ScraperError as exc:
+        log(logger, logging.ERROR, "RUN FAILED: transient error exhausted retries",
+            error=str(exc))
+        return 1
     except Exception as exc:  # noqa: BLE001 - top-level guard, log loudly
         log(logger, logging.ERROR, "Unhandled error during run", error=str(exc))
         logger.exception("traceback")

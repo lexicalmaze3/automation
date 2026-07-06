@@ -4,6 +4,7 @@ beautifulsoup4>=4.12
 lxml>=5.0
 python-dotenv>=1.0
 python-dateutil>=2.9
+truststore>=0.9   # trust the OS cert store (works behind TLS-inspecting proxies)
 # Optional, only needed if google_sheet_id is configured (Stage 5)
 gspread>=6.0
 google-auth>=2.0

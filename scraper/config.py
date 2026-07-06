@@ -50,6 +50,11 @@ class Config:
     row_selector: Optional[str]
     pagination: PaginationConfig
     output: OutputConfig
+    user_agent: str = "config-scraper/1.0"
+    request_timeout_seconds: float = 10.0
+    max_retries: int = 3
+    jitter_min_seconds: float = 0.5
+    jitter_max_seconds: float = 1.5
     secrets: Secrets = field(default_factory=Secrets)
 
     # Convenience view of only the fields that actually have a selector set.
@@ -124,5 +129,10 @@ def load_config(config_path: str = "config.yaml", env_path: str = ".env") -> Con
         row_selector=raw.get("row_selector") or None,
         pagination=pagination,
         output=output,
+        user_agent=raw.get("user_agent") or "config-scraper/1.0",
+        request_timeout_seconds=float(raw.get("request_timeout_seconds", 10)),
+        max_retries=int(raw.get("max_retries", 3)),
+        jitter_min_seconds=float(raw.get("jitter_min_seconds", 0.5)),
+        jitter_max_seconds=float(raw.get("jitter_max_seconds", 1.5)),
         secrets=secrets,
     )

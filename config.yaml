@@ -1,7 +1,14 @@
-target_url: "https://amy-mc.co.il/listings"   # client's own site — swap per client
+target_url: "https://www.amy-mc.co.il/listings"   # client's own site — swap per client (canonical www host; bare domain redirects here)
 rate_limit_seconds: 2
 max_pages: 25
 dedupe_key: listing_url
+
+# Fetch layer (Stage 2). Honest, identifiable UA — no browser spoofing.
+user_agent: "amymc-listings-bot/1.0 (+contact: yanaigazit10@gmail.com)"
+request_timeout_seconds: 10      # connect + read timeout per request
+max_retries: 3                   # transient errors only (5xx / connection / read timeout)
+jitter_min_seconds: 0.5          # randomized delay added on top of rate_limit_seconds
+jitter_max_seconds: 1.5
 
 # How to advance to the next page. Stage 4 fills this in after inspecting the DOM.
 #   mode: query   -> append ?page=N (param below) to target_url
