@@ -1,0 +1,9 @@
+PyYAML>=6.0
+requests>=2.31
+beautifulsoup4>=4.12
+lxml>=5.0
+python-dotenv>=1.0
+python-dateutil>=2.9
+# Optional, only needed if google_sheet_id is configured (Stage 5)
+gspread>=6.0
+google-auth>=2.0

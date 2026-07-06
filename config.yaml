@@ -1,0 +1,33 @@
+target_url: "https://amy-mc.co.il/listings"   # client's own site — swap per client
+rate_limit_seconds: 2
+max_pages: 25
+dedupe_key: listing_url
+
+# How to advance to the next page. Stage 4 fills this in after inspecting the DOM.
+#   mode: query   -> append ?page=N (param below) to target_url
+#   mode: link    -> follow the "next" link matched by next_selector
+#   mode: none    -> single page only
+pagination:
+  mode: none
+  query_param: page
+  start_page: 1
+  next_selector:
+
+fields:            # selectors discovered in Stage 3 by inspecting the page DOM
+  title:
+  price_ils:
+  rooms:
+  size_sqm:
+  neighborhood:
+  listing_url:
+  date_listed:
+  agent:
+
+# The CSS selector that matches ONE listing container/row on the page.
+# Each match becomes one output row; fields above are extracted relative to it.
+row_selector:
+
+output:
+  csv_path: "./out/listings.csv"
+  google_sheet_id: ""        # paste Sheet ID to enable; blank = CSV only
+  sheet_tab: "listings"
